@@ -4,5 +4,11 @@
 EditorBuildSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 2
-  m_Scenes: []
+  m_Scenes:
+  - enabled: 1
+    path: Assets/Scenes/ContainerScene.unity
+    guid: 793036e21ee21d44da39a031b00bdb5f
+  - enabled: 1
+    path: Assets/Scenes/CartScene.unity
+    guid: f8889971ce0692546a409077c171f82d
   m_configObjects: {}

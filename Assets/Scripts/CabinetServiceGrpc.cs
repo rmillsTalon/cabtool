@@ -14,6 +14,13 @@ namespace Assets.Scripts
 {
     public class CabinetServiceGrpc : MonoBehaviour
     {
+        private static int NextInstance = 1;
+        public readonly int InstanceNum;
+        public CabinetServiceGrpc()
+        {
+            InstanceNum = NextInstance;
+            ++NextInstance;
+        }
 
         const string GRPC_CABINETSERVICE_URL = "localhost:5010";
         bool iosLoaded;
@@ -54,7 +61,6 @@ namespace Assets.Scripts
         {
              channel = new Channel(targetUrl, ChannelCredentials.Insecure);
              client = new GrpcCabinet.Cabinet.CabinetClient(channel);
-           
         }
         //Cabinet.CabinetClient GetCabinetClient()
         //{
@@ -130,7 +136,8 @@ namespace Assets.Scripts
         }
         // Where to send our request
 
-
+        public System.Threading.CancellationTokenSource CanSrc = new System.Threading.CancellationTokenSource();
+        public System.Threading.CancellationToken SubscriptionCancelToken;
         public async void Subscribe()
         {
             //Task.Run(async () =>
@@ -140,15 +147,18 @@ namespace Assets.Scripts
         }
         public async Task Subscribe(string subscriptionId)
         {
+            SubscriptionCancelToken = CanSrc.Token;
+
             //var client = GetCabinetClient();
             _subscription = new Subscription() { Id = subscriptionId };
             Debug.Log($">> SubscriptionId : {subscriptionId}");
             using (var call = client.Subscribe(_subscription))
             {
+
                 //Receive
                 //var responseReaderTask = Task.Run(async () =>
                 //{
-                    while (await call.ResponseStream.MoveNext())
+                    while (await call.ResponseStream.MoveNext(SubscriptionCancelToken))
                     {
                         Debug.Log("Event received: " + call.ResponseStream.Current);
                         var msg = call.ResponseStream.Current;
@@ -171,8 +181,11 @@ namespace Assets.Scripts
         {
             if (_subscription != null)
             {
+                CanSrc.Cancel();
                 client.Unsubscribe(_subscription);
                 channel.ShutdownAsync();
+                Debug.Log("Unsubscribed");
+
             }
         }
 
@@ -185,7 +198,7 @@ namespace Assets.Scripts
             {
                 if (f.Value != item.Value)
                 {
-                    Debug.Log("Change received.");
+                    Debug.Log("Change received, instance: " + NextInstance);
                      
                     if (OnChangeValue !=null)
                          OnChangeValue( item);                      
@@ -193,23 +206,40 @@ namespace Assets.Scripts
                 }
             }
         }
+
+        bool Shutdown = false;
+        void OnApplicationQuit()
+        {
+            Shutdown = true;
+        }
+
         async void DoCheck()
         {
             for (; ; )
             {
                 try
                 {
+                    if (Shutdown)
+                    {
+//                        Unsubscribe();
+                        return;
+                    }
+
                     //var client = GetCabinetClient();
                     var reply = client.GetHealth(new CabinetRequest());
                     if (reply.IsHealthy)
                     {
                         break;
                     }
-
                 }
                 catch (RpcException e)
                 {
                     Debug.Log($"GetHealth: {e.Status}");
+                }
+                if (Shutdown)
+                {
+//                    Unsubscribe();
+                    return;
                 }
                 await Task.Delay(1000);
             }
@@ -218,7 +248,7 @@ namespace Assets.Scripts
                 getContainersFromServer();
                 getIosFromServer();
                 getDevicesFromServer();
-               
+
                 Subscribe();
             }
             catch (RpcException e)

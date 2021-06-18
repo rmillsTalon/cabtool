@@ -4,13 +4,13 @@ using UnityEngine;
 public class OpenDoor : MonoBehaviour
 {
     private bool doorOpened;
-    private bool coroutineAllowed;
+    //private bool coroutineAllowed;
 
     // Start is called before the first frame update
     void Start()
     {
         doorOpened = false;
-        coroutineAllowed = true;
+//        coroutineAllowed = true;
     }
 
     private void OnMouseDown()
@@ -25,7 +25,7 @@ public class OpenDoor : MonoBehaviour
 
     private IEnumerator OpenThatDoor()
     {
-        coroutineAllowed = false;
+//        coroutineAllowed = false;
         if (!doorOpened)
         {
             for (float i = 0f; i <= 45f; i += 3f)
@@ -44,6 +44,6 @@ public class OpenDoor : MonoBehaviour
             }
             doorOpened = false;
         }
-        coroutineAllowed = true;
+//        coroutineAllowed = true;
     }
 }
